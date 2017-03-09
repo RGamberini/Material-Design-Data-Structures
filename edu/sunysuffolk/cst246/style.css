@@ -1,0 +1,22 @@
+.no-highlight:focused {
+    -fx-background-color: -fx-outer-border, -fx-inner-border, -fx-body-color;
+    -fx-background-insets: 0, 1, 2;
+}
+
+.text-field {
+    -fx-text-fill: #000000;
+    -fx-font-size: 20px;
+}
+
+.button {
+    -fx-font-size: 20px;
+    -fx-font-weight: 600;
+}
+
+.delete:default {
+    -fx-background-color: #F44336;
+}
+
+.yellow:default {
+    -fx-background-color: #EF6C00;
+}
