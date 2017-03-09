@@ -2,35 +2,38 @@ package edu.sunysuffolk.cst246;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
-import javafx.scene.control.ListView;
+import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
+
+import java.util.Arrays;
 
 /**
  * The Controller class is the base class for everything GUI related.
- * It contains the underlying UnsortedOptimizedArray, as well as all the JavaFX components that interface with the array.
+ * It contains the underlying Stack, as well as all the JavaFX components that interface with the array.
  *
  * @author Rudy Gamberini
- * @version February 14th, 2017
+ * @version February 28th, 2017
  */
 public class Controller {
     @FXML
     ScrollPane parentToArrayView;
     @FXML
-    private Button insertButton;
+    private Button pushButton;
     @FXML
-    private Button deleteButton;
+    private Button reinitializeButton;
     @FXML
-    private Button fetchButton;
+    private Button popButton;
+    @FXML
+    private Button clearButton;
     @FXML
     private TextField nameField;
     @FXML
-    private TextField departmentField;
+    private TextField IDField;
     @FXML
-    private TextField areaOfExpertiseField;
-    @FXML
-    private TextField emailField;
+    private TextField GPAField;
     @FXML
     private Pane lookupPopup;
     @FXML
@@ -38,111 +41,140 @@ public class Controller {
     @FXML
     private Button lookupOK;
     @FXML
+    private Pane errorPopup;
+    @FXML
+    private Button errorOK;
+    @FXML
+    private Label errorMessage;
+    @FXML
     private TextField lookupField;
+    @FXML
+    private Label numOfNodesLabel;
+    @FXML
+    private Label topLabel;
 
-    private UnsortedOptimizedArray unsortedOptimizedArray;
-    private UnsortedOptimizedArrayView unsortedOptimizedArrayView;
+    private Stack stack;
+    private StackView stackView;
+    private final static StudentListing[] defaults = new StudentListing[]{
+            new StudentListing("Gamberini", "11631", 4.0f),
+            new StudentListing("Docher", "23643", 4.0f),
+            new StudentListing("Struck", "56323", 3.8f)};
 
     @FXML
     /**
      * The initialize method is called when the scene is loaded from the stage and is the jumping off point for everything the controller does.
      * Inside the initialize method in order of appearance in the code:
-     *  The UnsortedOptimizedArray is instantiated using the default constructor.
-     *  List View Setup occurs linking the visual list with the behind the scenes array.
-     *  And all of the buttons listeners are instantiated.
+     *  The Stack is instantiated using the size constructor with a size of 3.
+     *  All of the buttons listeners are instantiated.
+     *  Finally the list is initialized with three dummy nodes.
      */
     private void initialize() {
-        unsortedOptimizedArray = new UnsortedOptimizedArray();
-        unsortedOptimizedArrayView = new UnsortedOptimizedArrayView();
-        parentToArrayView.setContent(unsortedOptimizedArrayView);
+        stack = new Stack(3);
+        stackView = new StackView();
+        parentToArrayView.setContent(stackView);
+        updateTopAndNumOfNodes();
 
-        insertButton.setOnMouseClicked((event) -> insertOnClick());
+        pushButton.setOnMouseClicked((event) -> {
+            StudentListing studentListing = new StudentListing();
+            if (nameField.getText().equals("")) {
+                errorMessage.setText("Name must not be blank.");
+                showPopup(errorPopup);
+                return;
+            }
 
-        deleteButton.setOnMouseClicked((event -> {
-            showPopup();
-            lookupOK.setOnMouseClicked((event1 -> {
-                unsortedOptimizedArray.delete(lookupField.getText());
-                hidePopup();
-            }));
+            if (IDField.getText().equals("")) {
+                errorMessage.setText("ID must not be blank.");
+                showPopup(errorPopup);
+                return;
+            }
+            try {
+                Float.parseFloat(GPAField.getText());
+            } catch (NumberFormatException e) {
+                errorMessage.setText("GPA must be a decimal between 0.0 and 4.0. (You entered " + GPAField.getText() + ")");
+                showPopup(errorPopup);
+                return;
+            }
+            studentListing.input(nameField, IDField, GPAField);
+
+            if (!stack.push(studentListing)) {
+                errorMessage.setText("Stack Overflow! Top is " + stack.getTop() + " and size is " + stack.getNumOfNodes());
+                showPopup(errorPopup);
+                return;
+            }
+            stackView.push(studentListing);
+
+            clearFields();
+            updateTopAndNumOfNodes();
+        });
+        clearButton.setOnMouseClicked((event) -> clearFields());
+
+        reinitializeButton.setOnMouseClicked((event) -> reinitialize());
+
+        popButton.setOnMouseClicked((event -> {
+            StudentListing listing = stack.pop();
+            if (listing == null) {
+                errorMessage.setText("Stack Underflow! Top is " + stack.getTop());
+                showPopup(errorPopup);
+                return;
+            }
+            stackView.pop();
+            nameField.setText(listing.getName());
+            IDField.setText(listing.getID());
+            GPAField.setText(Float.toString(listing.getGPA()));
+
+            updateTopAndNumOfNodes();
         }));
 
-        fetchButton.setOnMouseClicked((event -> {
-            showPopup();
-            lookupOK.setOnMouseClicked((event1 -> unsortedOptimizedArray.fetch(lookupField.getText())));
-        }));
+        lookupCancel.setOnMouseClicked((event -> hidePopup(lookupPopup)));
+        errorOK.setOnMouseClicked(event -> hidePopup(errorPopup));
 
-        lookupCancel.setOnMouseClicked((event -> hidePopup()));
+        reinitialize();
     }
 
     /**
-     * The main GUI has two "modes" one (the default) for inserting new ProfessorListings and one for updating existing ones.
-     * This method switches the GUI to the former.
-     * @param professorListing the existing professorListing to be updated
-     */
-    public void setUpdateMode(ProfessorListing professorListing) {
-        nameField.setText(professorListing.getName());
-        departmentField.setText(professorListing.getDepartment());
-        emailField.setText(professorListing.getEmailAddress());
-
-        areaOfExpertiseField.setText(professorListing.getAreaOfExpertise());
-        areaOfExpertiseField.setEditable(false);
-
-        this.insertButton.setOnMouseClicked((event) -> updateOnClick());
-        this.insertButton.setText("Update");
-    }
-
-    /**
-     * Whether updating or inserting inbetween operations we need to clear the input fields that's what this method does.
+     * Whenever in between operations we need to clear the input fields that's what this method does.
      */
     private void clearFields() {
         nameField.setText("");
-        departmentField.setText("");
-        areaOfExpertiseField.setText("");
-        emailField.setText("");
+        IDField.setText("");
+        GPAField.setText("");
     }
 
     /**
-     * Upon clicking the insert button while in insert mode this method is called, creating a new ProfessorListing and calling input on it.
-     * Then that new ProfessorListing is inserted into the UnsortedOptimizedArray
+     * Another convenience function this updates the GUI components showing the top of the stack and the number of nodes.
      */
-    private void insertOnClick() {
-//        ProfessorListing professorListing = new ProfessorListing();
-//        professorListing.input(nameField, departmentField, areaOfExpertiseField, emailField);
-//        unsortedOptimizedArray.insert(professorListing);
-//        clearFields();
-        unsortedOptimizedArrayView.insert(new ProfessorListing());
+    private void updateTopAndNumOfNodes() {
+        numOfNodesLabel.setText("# of Nodes: " + stack.getNumOfNodes());
+        topLabel.setText("Top: " + stack.getTop());
     }
 
     /**
-     * If GUI is switched to update mode then this method will be called instead of insertOnClick.
-     * After updating the ProfessorListing in the original array the GUI is automatically switched back into insert mode.
+     * Hides a popup
      */
-    private void updateOnClick() {
-        ProfessorListing professorListing = new ProfessorListing();
-        professorListing.input(nameField, departmentField, areaOfExpertiseField, emailField);
-        unsortedOptimizedArray.update(professorListing.getAreaOfExpertise(), professorListing);
-
-        clearFields();
-        areaOfExpertiseField.setEditable(true);
-        insertButton.setOnMouseClicked((event1) -> insertOnClick());
-        insertButton.setText("Insert");
-    }
-
-    /**
-     * Hides the popup for fetching and deleting
-     */
-    private void hidePopup() {
-        lookupPopup.setMouseTransparent(true);
-        lookupPopup.setOpacity(0);
+    private void hidePopup(Pane popup) {
+        popup.setMouseTransparent(true);
+        popup.setOpacity(0);
         lookupField.setText("");
     }
 
     /**
-     * Shows the popup for fetching and deleting
+     * Shows a popup
      */
-    private void showPopup() {
-        lookupPopup.setOpacity(1.0);
-        lookupPopup.setMouseTransparent(false);
+    private void showPopup(Pane popup) {
+        popup.setOpacity(1.0);
+        popup.setMouseTransparent(false);
+    }
+
+    /**
+     * Initializes the list by clearing and then filling it with 3 dummy nodes.
+     */
+    private void reinitialize() {
+        while (stack.pop() != null)
+            stackView.pop();
+        Arrays.stream(defaults).forEach((studentListing -> {
+            if(stack.push(studentListing))
+                stackView.push(studentListing);
+        }));
     }
 
 }

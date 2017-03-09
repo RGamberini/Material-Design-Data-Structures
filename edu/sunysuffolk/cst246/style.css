@@ -2,7 +2,10 @@
     -fx-background-color: -fx-outer-border, -fx-inner-border, -fx-body-color;
     -fx-background-insets: 0, 1, 2;
 }
-
+.arrayViewScrollpane {
+    -fx-background-color: transparent;
+    -fx-background: white;
+}
 .text-field {
     -fx-text-fill: #000000;
     -fx-font-size: 20px;
@@ -19,4 +22,16 @@
 
 .yellow:default {
     -fx-background-color: #EF6C00;
+}
+.cell-label {
+    -fx-font-size: 20px;
+}
+.no-padding {
+    -fx-padding: 0 0 0 0;
+}
+.headerPane {
+}
+
+.headerLabel {
+    -fx-font-size: 20px;
 }

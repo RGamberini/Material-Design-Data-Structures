@@ -10,7 +10,7 @@ import javafx.stage.Stage;
  * The Main Class exists to allow us to launch the JavaFX GUI.
  *
  * @author Rudy Gamberini
- * @version February 14th, 2017
+ * @version February 28th, 2017
  */
 public class Main extends Application {
 
@@ -23,7 +23,7 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
         Parent root = FXMLLoader.load(getClass().getResource("main.fxml"));
-        primaryStage.setTitle("Gamberini Doscher Unsorted Optimized Array");
+        primaryStage.setTitle("Gamberini Doscher Stack");
         Scene scene = new Scene(root, 655, 498);
         scene.getStylesheets().add(getClass().getResource("material-fx.css").toExternalForm());
         scene.getStylesheets().add(getClass().getResource("style.css").toExternalForm());
